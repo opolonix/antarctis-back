@@ -8,6 +8,7 @@ __pycache__/
 
 config.py
 html
+init.sh
 
 # Distribution / packaging
 .Python

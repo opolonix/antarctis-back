@@ -18,7 +18,7 @@ db = engine()
 class NewClient(BaseModel):
     first_name: str
     last_name: str
-    father_name: str
+    father_name: str | None
 
     phone: str
     company_name: str
