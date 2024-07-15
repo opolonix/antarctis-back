@@ -21,7 +21,7 @@ class NewClient(BaseModel):
     father_name: str
 
     phone: str
-    company: str
+    company_name: str
     email: str
     facility_name: str
 
