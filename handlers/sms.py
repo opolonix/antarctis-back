@@ -7,10 +7,14 @@ from tools.orm import Auth, Client
 from tools.verefy import get_client
 
 from pydantic import BaseModel
+from datetime import datetime, timedelta
 
 import re
 import random
 import string
+import requests
+
+from config import SMS
 
 router = APIRouter(prefix="/sms")
 db = engine()
@@ -24,6 +28,32 @@ class NewClient(BaseModel):
     company_name: str
     email: str
     facility_name: str
+
+class SMSCall(BaseModel):
+    phone: str
+    message: str
+    date: datetime = datetime.now()
+
+class SMSCalls:
+    def __init__(self, limit_peer_hour: int = 60) -> None:
+        self.calls: list[SMSCall] = []
+        self.limit = limit_peer_hour
+
+    def send_sms(self, phone: str, message: str):
+        this = datetime.now() + timedelta(hours=1)
+        limit = 0
+        for call in self.calls:
+            if call.date < this: 
+                limit += 1
+            else: 
+                break
+            if limit == self.limit: # выкидывает исключение если лимит запросов за час превышен
+                raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, detail="Линия запросов перегружена")
+        self.calls.append(SMSCall(phone=phone, message=message))
+        answer = requests.get(f"https://smsc.ru/sys/send.php?login={SMS.login}&psw={SMS.psw}&phones={phone}&mes={message}")
+        return answer
+
+sms = SMSCalls()
 
 @router.post("/sendCode")
 async def send_sms_code(phone: str, request: Request, response: Response, client: Optional[Auth] = Depends(get_client)) -> int:
@@ -76,7 +106,7 @@ async def send_sms_code(data: NewClient, request: Request, response: Response, c
 
     code = ''.join(random.choices(string.digits, k=4))
 
-    # здесь нужно доставить код клиенту
+    answer = sms.send_sms(data.phone, message=f"Ваш код авторизации для сервиса antarctis.ru {code}")
 
     auth = Auth(client_id=client.id, sms_code=code)
     db.add(auth)
