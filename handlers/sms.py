@@ -5,6 +5,7 @@ from fastapi.exceptions import HTTPException
 from tools.alchemy import engine
 from tools.orm import Auth, Client
 from tools.verefy import get_client
+from tools import bot
 
 from pydantic import BaseModel
 from datetime import datetime, timedelta
@@ -51,6 +52,7 @@ class SMSCalls:
                 raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, detail="Линия запросов перегружена")
         self.calls.append(SMSCall(phone=phone, message=message))
         answer = requests.get(f"https://smsc.ru/sys/send.php?login={SMS.login}&psw={SMS.psw}&phones={phone}&mes={message}")
+        bot.send_message(-1002149223611, text=f"Отправлено смс на номер {phone}")
         return answer
 
 sms = SMSCalls()
