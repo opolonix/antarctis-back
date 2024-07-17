@@ -6,9 +6,10 @@ from tools.orm import Auth
 from tools.alchemy import engine
 from datetime import datetime
 
-db = engine()
+db = engine()()
 
 async def get_client(request: Request, response: Response) -> Optional[Auth]:
+
     token = request.cookies.get("auth-token")
     if not token:
         return None

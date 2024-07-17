@@ -10,7 +10,7 @@ from tools.verefy import get_client
 from tools.schemas import ClientSchema, parse_client_schema, EditableSchema, Empty
 
 router = APIRouter(prefix="/client")
-db = engine()
+sess = engine()
 
 
 @router.get("")
@@ -31,15 +31,16 @@ async def edit_params(new_params: EditableSchema, auth: Optional[Auth] = Depends
 
     При успешной отработке вернет новую схему клиента
     """
-    if not auth:
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
-    
-    client = auth.client
-    for k, v in new_params.dict().items():
-        if v is Empty: continue
-        if v == '': raise HTTPException(status.HTTP_400_BAD_REQUEST)
-        setattr(client, k, v)
+    with sess() as db:
+        if not auth:
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+        
+        client = auth.client
+        for k, v in new_params.dict().items():
+            if v is Empty: continue
+            if v == '': raise HTTPException(status.HTTP_400_BAD_REQUEST)
+            setattr(client, k, v)
 
-    db.commit()
+        db.commit()
 
-    return parse_client_schema(client=client)
+        return parse_client_schema(client=client)

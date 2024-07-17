@@ -1,6 +1,7 @@
 from typing import Optional
 from fastapi import APIRouter, Depends, status, Request, Response, Cookie
 from fastapi.exceptions import HTTPException
+from sqlalchemy.orm import Session
 
 from tools.alchemy import engine
 from tools.orm import Auth, Client
@@ -18,7 +19,7 @@ import requests
 from config import SMS
 
 router = APIRouter(prefix="/sms")
-db = engine()
+sess = engine()
 
 class NewClient(BaseModel):
     first_name: str
@@ -77,19 +78,21 @@ async def send_sms_code(phone: str, request: Request, response: Response, client
     if len(phone) < 6 or len(phone) > 20:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Неверно введен номер телефона")
     
-    if not (client := db.query(Client).filter(Client.phone == phone).first()):
-        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+    with sess() as db:
 
-    code = ''.join(random.choices(string.digits, k=4))
+        if not (client := db.query(Client).filter(Client.phone == phone).first()):
+            raise HTTPException(status.HTTP_401_UNAUTHORIZED)
 
-    answer = sms.send_sms(phone, message=f"Ваш код авторизации для сервиса antarctis.ru {code}")
+        code = ''.join(random.choices(string.digits, k=4))
 
-    auth = Auth(client_id=client.id, sms_code=code)
-    db.add(auth)
-    db.commit()
-    response.set_cookie("auth-token", auth.token)
+        answer = sms.send_sms(phone, message=f"Ваш код авторизации для сервиса antarctis.ru {code}")
 
-    return status.HTTP_200_OK
+        auth = Auth(client_id=client.id, sms_code=code)
+        db.add(auth)
+        db.commit()
+        response.set_cookie("auth-token", auth.token)
+
+        return status.HTTP_200_OK
 
 @router.post("/newClient")
 async def send_sms_code(data: NewClient, request: Request, response: Response, client: Optional[Auth] = Depends(get_client)) -> int:
@@ -117,25 +120,27 @@ async def send_sms_code(data: NewClient, request: Request, response: Response, c
     if not (data.first_name and data.facility_name and data.email and data.last_name):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Заполните обязательные поля")
 
-    if not (client := db.query(Client).filter(Client.phone == data.phone).first()): # проверка наличия клиента в базе
+    with sess() as db:
 
-        by_email = db.query(Client).filter(Client.email == data.email).first()
-        if by_email:
-            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Этот имейл уже привязан к аккаунту")
-        client = Client(**data.dict())
-        db.add(client)
+        if not (client := db.query(Client).filter(Client.phone == data.phone).first()): # проверка наличия клиента в базе
+
+            by_email = db.query(Client).filter(Client.email == data.email).first()
+            if by_email:
+                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Этот имейл уже привязан к аккаунту")
+            client = Client(**data.dict())
+            db.add(client)
+            db.commit()
+
+        code = ''.join(random.choices(string.digits, k=4))
+
+        answer = sms.send_sms(data.phone, message=f"Ваш код авторизации для сервиса antarctis.ru {code}")
+
+        auth = Auth(client_id=client.id, sms_code=code)
+        db.add(auth)
         db.commit()
+        response.set_cookie("auth-token", auth.token)
 
-    code = ''.join(random.choices(string.digits, k=4))
-
-    answer = sms.send_sms(data.phone, message=f"Ваш код авторизации для сервиса antarctis.ru {code}")
-
-    auth = Auth(client_id=client.id, sms_code=code)
-    db.add(auth)
-    db.commit()
-    response.set_cookie("auth-token", auth.token)
-
-    return status.HTTP_200_OK
+        return status.HTTP_200_OK
 
 @router.get("/verifyCode")
 async def verify_sms_code(code: str, auth: Optional[Auth] = Depends(get_client)) -> int:
@@ -150,7 +155,9 @@ async def verify_sms_code(code: str, auth: Optional[Auth] = Depends(get_client))
     if auth.sms_code != code:
         raise HTTPException(status.HTTP_400_BAD_REQUEST)
 
-    auth.verefied = True
-    db.commit()
+    with sess() as db:
+
+        auth.verefied = True
+        db.commit()
 
     return status.HTTP_200_OK

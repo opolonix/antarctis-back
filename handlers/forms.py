@@ -10,7 +10,7 @@ from config import DOMAIN
 
 
 router = APIRouter(prefix="/form")
-db = engine()
+sess = engine()
 
 patterns_map: dict[str, str] = {
     "economizer": "", 
@@ -29,17 +29,18 @@ async def form_handler(name: Literal["economizer", "conditioner", "absorber", "c
     :fields - словарь ключ: значение, где ключ - название поля, значение - значение этого поля"""
     if not auth:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+    with sess() as db:
 
-    # рассчет по формулам происходит при выдаче файла!!!
+        # рассчет по формулам происходит при выдаче файла!!!
 
-    raport = Raport(name=n if (n := patterns_map.get(name)) else "Лист подбора", key=name, client_id=auth.client_id)
-    db.add(raport)
-    db.commit()
+        raport = Raport(name=n if (n := patterns_map.get(name)) else "Лист подбора", key=name, client_id=auth.client_id)
+        db.add(raport)
+        db.commit()
 
-    fields = [RaportData(value=str(v), key=k, type=type(v).__name__) for k, v in fields.items()]
-    raport.data = fields
-    db.commit()
+        fields = [RaportData(value=str(v), key=k, type=type(v).__name__) for k, v in fields.items()]
+        raport.data = fields
+        db.commit()
 
-    bot.send_message(-1002149223611, text="Создан новый отчет", button_text="Скачать файл", button_url=f"{DOMAIN}/{raport.uuid}.pdf")
+        bot.send_message(-1002149223611, text="Создан новый отчет", button_text="Скачать файл", button_url=f"{DOMAIN}/{raport.uuid}.pdf")
 
-    return status.HTTP_200_OK
+        return status.HTTP_200_OK
