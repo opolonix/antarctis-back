@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, status, Response
 from fastapi.exceptions import HTTPException
 
 from tools.orm import Auth
@@ -21,6 +21,14 @@ async def get_myself(auth: Optional[Auth] = Depends(get_client)) -> ClientSchema
         raise HTTPException(status.HTTP_401_UNAUTHORIZED)
 
     return parse_client_schema(client=auth.client)
+
+@router.get("/logout")
+async def logout(response: Response) -> int:
+    """Производит логаут для клиента"""
+
+    response.delete_cookie("auth-token")
+
+    return status.HTTP_200_OK
 
 
 @router.post("/edit")
