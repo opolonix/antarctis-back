@@ -1,8 +1,9 @@
-from fastapi import APIRouter, status, Response
+from typing import Optional
+from fastapi import APIRouter, Depends, status, HTTPException
 from fastapi.responses import RedirectResponse, StreamingResponse
 
 from tools.alchemy import engine
-from tools.orm import Raport
+from tools.orm import Raport, Auth
 
 import datetime
 import patterns
@@ -10,6 +11,9 @@ import PyPDF2
 import io
 import urllib.parse
 import fitz
+
+from tools.verefy import get_client
+from tools.schemas import parse_client_schema, ClientSchema
 
 router = APIRouter()
 db = engine()
@@ -29,13 +33,33 @@ datatypes = {
     "date": datetime.date
 }
 
+
+@router.get("/hide/{key}.pdf", response_class=ClientSchema)
+async def hide_raport(key, auth: Optional[Auth] = Depends(get_client)) -> ClientSchema:
+    """Скрывает файл из выдачи и личного профиля"""
+
+    if not auth:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+
+    file = db.query(Raport).filter(Raport.uuid == key).first()
+
+    if auth.client_id != file.client_id: # можно удалить только свои файлы
+        raise HTTPException(status.HTTP_403_FORBIDDEN, detail="можно удалить только свои файлы")
+    
+    file.hidden = True
+    db.commit()
+
+    return parse_client_schema(client=auth.client)
+
+
+
 @router.get("/{key}.pdf", response_class=StreamingResponse)
-async def download_pdf(key, response: Response) -> StreamingResponse:
+async def download_pdf(key: str) -> StreamingResponse:
     """Принимает uuid файла, и возвращает созданный файл в формате pdf"""
 
     file = db.query(Raport).filter(Raport.uuid == key).first()
 
-    if not file:
+    if not file or file.hidden:
         return RedirectResponse("/404", status.HTTP_404_NOT_FOUND)
 
     file.requests_count += 1
