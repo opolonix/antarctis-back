@@ -14,6 +14,21 @@ import fitz
 router = APIRouter()
 db = engine()
 
+patterns_map: dict[str, str] = {
+    "economizer": "", 
+    "conditioner": "Прецизионные кондиционеры", 
+    "absorber": "", 
+    "chiller-1": "", 
+    "chiller-2": ""
+}
+
+datatypes = {
+    "float": float,
+    "int": int,
+    "datetime": datetime.datetime,
+    "date": datetime.date
+}
+
 @router.get("/{key}.pdf", response_class=StreamingResponse)
 async def download_pdf(key, response: Response) -> StreamingResponse:
 
@@ -26,12 +41,6 @@ async def download_pdf(key, response: Response) -> StreamingResponse:
     db.commit()
 
     data = {} # массив метадаты у файла
-    datatypes = {
-        "float": float,
-        "int": int,
-        "datetime": datetime.datetime,
-        "date": datetime.date
-    }
 
     for d in file.data:
         t = datatypes.get(d.type)
@@ -40,18 +49,18 @@ async def download_pdf(key, response: Response) -> StreamingResponse:
 
     output = io.BytesIO()
 
-    reader1 = PyPDF2.PdfReader(patterns.aura["шаблон"])
-    reader2 = PyPDF2.PdfReader(patterns.aura["16"])
 
+    # здесь нужно провести рассчет мощности
+
+
+    header = PyPDF2.PdfReader(patterns.headers.get(patterns_map.get(file.key)))
     writer = PyPDF2.PdfWriter()
 
-    [writer.add_page(page) for page in reader1.pages]
-    [writer.add_page(page) for page in reader2.pages]
+    [writer.add_page(page) for page in header.pages]
 
     writer.write(output)
     writer.close()
     output.seek(0)
-
 
     document = fitz.open(stream=output, filetype="pdf")
 

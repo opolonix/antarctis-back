@@ -52,8 +52,9 @@ class Raport(Base):
     __tablename__ = 'raports'
 
     id: int = Column(Integer, primary_key=True, autoincrement=True)
-    uuid: str = Column(String(36), index=True, default=str(uuid.uuid4()), comment="уникальный ключ рапорта")
+    uuid: str = Column(String(36), index=True, default=lambda: str(uuid.uuid4()), comment="уникальный ключ рапорта")
     name: str = Column(String(128), nullable=False, comment="Читаемое название рапорта")
+    key: str = Column(String(32), comment="Ключ к листу подбора")
     date: datetime = Column(DateTime, default=datetime.now, comment="дата создания рапорта")
 
     client_id: int = Column(Integer, ForeignKey("clients.id"), comment="ссылка на клиента")
