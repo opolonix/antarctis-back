@@ -1,8 +1,5 @@
-from typing import Dict, Literal, Optional
+from typing import Literal, Optional
 from fastapi import APIRouter, Depends, HTTPException, status, Request, Response
-
-from pydantic import BaseModel
-from aiogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 
 from tools.alchemy import engine
 from tools.orm import Auth, Raport, RaportData
