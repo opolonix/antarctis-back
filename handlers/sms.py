@@ -57,6 +57,14 @@ sms = SMSCalls()
 
 @router.post("/sendCode")
 async def send_sms_code(phone: str, request: Request, response: Response, client: Optional[Auth] = Depends(get_client)) -> int:
+    """Ручка посылает смс код с учетом, если клиент на таком номере уже зарегистрирован
+    
+    Вернет 409 если вы уже авторизованы в системе, следовательно нужно пингануть ручку /client/logout
+    Вернет 400 если номер телефона не соответствует базовым параметрам длины
+    Вернет 401 если номер телефона не записан в базе (следовательно нужно перекинуть клиента на /login или обратиться к ручке /newClient)
+
+    В успешном результате вернет только код 200
+    """
 
     if client:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="Сначала выйдите из текущей сессии")
@@ -72,7 +80,7 @@ async def send_sms_code(phone: str, request: Request, response: Response, client
 
     code = ''.join(random.choices(string.digits, k=4))
 
-    # здесь нужно доставить код клиенту
+    answer = sms.send_sms(phone, message=f"Ваш код авторизации для сервиса antarctis.ru {code}")
 
     auth = Auth(client_id=client.id, sms_code=code)
     db.add(auth)
@@ -83,6 +91,18 @@ async def send_sms_code(phone: str, request: Request, response: Response, client
 
 @router.post("/newClient")
 async def send_sms_code(data: NewClient, request: Request, response: Response, client: Optional[Auth] = Depends(get_client)) -> int:
+    
+    """Ручка для создания нового клиента
+    
+    Вернет 409 если вы уже авторизованы в системе, следовательно нужно пингануть ручку /client/logout
+    Вернет 400 если номер телефона не соответствует базовым параметрам длины
+    Вернет 400 если не заполнены обязательные поля (все кроме отчества)
+    Вернет 400 если имейл уже привязан к другому аккаунту
+    
+    Если номер уже зарегистрирован, отправит код без изменения данных клиента
+
+    В успешном результате вернет только код 200
+    """
     
     if client:
         raise HTTPException(status.HTTP_409_CONFLICT, detail="Сначала выйдите из текущей сессии")
@@ -116,8 +136,12 @@ async def send_sms_code(data: NewClient, request: Request, response: Response, c
     return status.HTTP_200_OK
 
 @router.get("/verifyCode")
-async def verify_sms_code(code: str, request: Request, response: Response, auth: Optional[Auth] = Depends(get_client)) -> int:
-
+async def verify_sms_code(code: str, auth: Optional[Auth] = Depends(get_client)) -> int:
+    """Принимает code строкой, но состоит полностью из цифр
+    
+    вернет 400 если код не подошел
+    вернет 401 если сессия не была создана, тогда нужно обратиться на ручку /newClient или /sendCode
+    """
     if not auth:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED)
 

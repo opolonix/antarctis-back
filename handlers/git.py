@@ -4,8 +4,9 @@ from config import SECRET
 
 router = APIRouter()
 
-@router.post("/git")
+@router.post("/git", include_in_schema=False)
 async def github_webhook(request: Request):
+    """Хук для гита, реализвация ci/cd"""
     signature = request.headers.get("X-Hub-Signature")
     
     if signature is None:

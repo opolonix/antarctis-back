@@ -63,6 +63,7 @@ def parse_client_schema(client: Client) -> ClientSchema:
 
 @router.get("")
 async def get_myself(auth: Optional[Auth] = Depends(get_client)) -> ClientSchema:
+    """Возвращает полную информацию о клиенте, или ошибку 401, если клиент не авторизован"""
 
     if not auth:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED)
@@ -72,6 +73,12 @@ async def get_myself(auth: Optional[Auth] = Depends(get_client)) -> ClientSchema
 
 @router.post("/edit")
 async def edit_params(new_params: EditableSchema, auth: Optional[Auth] = Depends(get_client)) -> ClientSchema:
+    """Ручка для изменения полей пользователя
+    Вернет 401 если пользователь не авторизован
+    Вернет 400 если значение поля, которое вы пытаетесь изменить  будет равно пустой строке
+
+    При успешной отработке вернет новую схему клиента
+    """
     if not auth:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED)
     

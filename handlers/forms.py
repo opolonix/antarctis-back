@@ -20,6 +20,11 @@ patterns_map: dict[str, str] = {
 
 @router.post("/{name}")
 async def form_handler(name: Literal["economizer", "conditioner", "absorber", "chiller-1", "chiller-2"], fields: dict[str, str | int], auth: Optional[Auth] = Depends(get_client)) -> int:
+    """Ручка для обработки формы
+    
+    Принимает параметры 
+    :name - имя формы (economizer, conditioner, absorber, chiller-1, chiller-2)
+    :fields - словарь ключ: значение, где ключ - название поля, значение - значение этого поля"""
     if not auth:
         raise HTTPException(status.HTTP_401_UNAUTHORIZED)
 

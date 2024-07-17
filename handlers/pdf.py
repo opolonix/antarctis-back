@@ -31,6 +31,7 @@ datatypes = {
 
 @router.get("/{key}.pdf", response_class=StreamingResponse)
 async def download_pdf(key, response: Response) -> StreamingResponse:
+    """Принимает uuid файла, и возвращает созданный файл в формате pdf"""
 
     file = db.query(Raport).filter(Raport.uuid == key).first()
 
