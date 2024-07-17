@@ -4,7 +4,7 @@ from datetime import datetime
 
 from tools.orm import Client
 
-class Empty: ...
+class Empty: ... # класс пустоты
 
 class RaportSchema(BaseModel):
     unique_name: str
@@ -26,7 +26,7 @@ class ClientSchema(BaseModel):
 class EditableSchema(BaseModel):
     first_name: str | type = Empty
     last_name: str | type = Empty
-    father_name: str | type | None = Empty
+    father_name: str| None | type = Empty
 
     company_name: str | type = Empty
     facility_name: str | type = Empty

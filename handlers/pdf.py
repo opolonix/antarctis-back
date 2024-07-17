@@ -34,7 +34,7 @@ datatypes = {
 }
 
 
-@router.get("/hide/{key}.pdf", response_class=ClientSchema)
+@router.get("/hide/{key}.pdf")
 async def hide_raport(key, auth: Optional[Auth] = Depends(get_client)) -> ClientSchema:
     """Скрывает файл из выдачи и личного профиля"""
 
