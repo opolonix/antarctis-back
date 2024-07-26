@@ -7,25 +7,18 @@ from sqlalchemy.orm import Session
 from tools.alchemy import engine
 from tools.orm import Raport, Auth
 from tools.pdf import merge_pdfs, get_text_length
+from tools.verefy import get_client
+from tools.schemas import parse_client_schema, ClientSchema
 
-import datetime
+from datetime import datetime, timedelta, date
 import patterns
-import PyPDF2
+import os
 import io
 import urllib.parse
 import pymupdf as fitz
 import phonenumbers
-
-from tools.verefy import get_client
-from tools.schemas import parse_client_schema, ClientSchema
-
-import io
-from PyPDF2 import PdfMerger, PdfReader, PdfWriter
+import hashlib
 import pdfplumber
-from reportlab.pdfgen import canvas
-from reportlab.lib.pagesizes import letter
-from reportlab.pdfbase import pdfmetrics
-from reportlab.pdfbase.ttfonts import TTFont
 
 router = APIRouter()
 sess = engine()
@@ -41,10 +34,12 @@ patterns_map: dict[str, str] = {
 datatypes = {
     "float": float,
     "int": int,
-    "datetime": datetime.datetime,
-    "date": datetime.date
+    "datetime": datetime,
+    "date": date
 }
 
+
+if not os.path.exists("content/cache"): os.mkdir("content/cache")
 
 @router.get("/hide/{key}.pdf")
 async def hide_raport(key, auth: Optional[Auth] = Depends(get_client)) -> ClientSchema:
@@ -76,6 +71,32 @@ async def download_pdf(key: str) -> StreamingResponse:
 
         if not file or file.hidden:
             return RedirectResponse("/404", status.HTTP_404_NOT_FOUND)
+        
+        if not file.last_requests: file.last_requests = datetime.now()
+
+        if file.last_requests > datetime.now() - timedelta(hours=1) and os.path.exists(f"content/cache/{key}.pdf"):
+            file.last_requests = datetime.now()
+            db.commit()
+
+            with open(f"content/cache/{key}.pdf", 'rb') as f:
+                output = io.BytesIO(f.read())
+
+            output.seek(0)
+
+            filename = urllib.parse.quote(f'{file.name} {file.date.strftime("%d.%m.%Y")}.pdf')
+
+            headers = {
+                'Content-Disposition': f'inline; filename*=UTF-8\'\'{filename}',
+                'Cache-Control': 'public, max-age=3600',
+                'ETag': hashlib.md5(output.read()).hexdigest()
+            }
+
+            output.seek(0)
+            
+            return StreamingResponse(output, media_type='application/pdf', headers=headers)
+
+        file.last_requests = datetime.now()
+        db.commit()
         
         if not file.key:
 
@@ -187,12 +208,17 @@ async def download_pdf(key: str) -> StreamingResponse:
         header.seek(0)
 
         output = merge_pdfs([header] + powers)
-        output.seek(0)
 
         filename = urllib.parse.quote(f'{file.name} {file.date.strftime("%d.%m.%Y")}.pdf')
 
         headers = {
-            'Content-Disposition': f'attachment; filename*=UTF-8\'\'{filename}'
+            'Content-Disposition': f'inline; filename*=UTF-8\'\'{filename}',
+            'Cache-Control': 'public, max-age=3600'
         }
 
+        with open(f"content/cache/{file.uuid}.pdf", 'wb+') as f:
+            output.seek(0)
+            f.write(output.read())
+        
+        output.seek(0)
         return StreamingResponse(output, media_type='application/pdf', headers=headers)

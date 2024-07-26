@@ -10,6 +10,7 @@ config.py
 html
 init.sh
 .osp
+cache/
 
 # Distribution / packaging
 .Python

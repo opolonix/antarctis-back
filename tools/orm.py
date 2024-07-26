@@ -64,6 +64,7 @@ class Raport(Base):
 
     data: Mapped[List["RaportData"]] = relationship("RaportData")
     requests_count: int = Column(Integer, default=0, comment="колличество запросов файла")
+    last_requests: datetime = Column(DateTime, default=datetime.now, comment="последнего запроса")
 
 class RaportData(Base):
     __tablename__ = 'raports_data'
