@@ -20,9 +20,10 @@ class Client(Base):
     father_name: str = Column(String(128), comment="отчество клиента", default="")
 
     phone: str = Column(String(20), comment="номер телефона клиента", index=True)
-    company_name: str = Column(String(128), comment="название компании клиента")
+    company_name: str = Column(String(256), comment="название компании клиента")
     email: str = Column(String(128), comment="имеил клиента клиента")
     facility_name: str = Column(String(128), comment="название обьекта клиента")
+    adress: str = Column(String(256), comment="адрес у клиента")
 
     join_at: datetime = Column(DateTime, default=datetime.now, comment="когда клиент присоеденился к системе")
     last_activity: datetime = Column(DateTime, default=datetime.now, comment="дата последней активности клиента")

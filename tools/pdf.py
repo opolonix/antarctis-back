@@ -1,16 +1,34 @@
-from xhtml2pdf import pisa
+import io
+from PyPDF2 import PdfMerger
+import fitz
 
-from reportlab.pdfbase.ttfonts import TTFont
-from reportlab.pdfbase import pdfmetrics
+def merge_pdfs(pdf_streams: list[io.BytesIO]) -> io.BytesIO:
+    merger = PdfMerger()
+    
+    for pdf_stream in pdf_streams:
+        pdf_stream.seek(0)
+        merger.append(pdf_stream)
+    
+    output_stream = io.BytesIO()
+    merger.write(output_stream)
+    merger.close()
+    
+    return output_stream
 
-import io, random, string, os
 
-pdfmetrics.registerFont(TTFont("Helvetica", "content/fonts/Inter-VariableFont_slnt,wght.ttf"))
+def get_text_length(text, font_size=12, font_path="content/fonts/Inter-VariableFont_slnt,wght.ttf"):
+    doc = fitz.open()
+    page = doc.new_page()
 
-def html_to_pdf(content: str) -> io.BytesIO:
-    key = ''.join(random.choice(string.ascii_letters) for i in range(24))
+    # Регистрация шрифта (используем встроенные шрифты для примера)
+    page.insert_text((0, 0), text, fontsize=font_size, fontfile=font_path, fontname="Inter")
 
-    with open(f"content/buffer/{key}.pdf", 'wb+') as f:
-        pisa.CreatePDF(content, dest=f, encoding="utf-8")
+    # Извлечение размеров текста
+    text_length = 0
+    blocks = page.get_text("dict", sort=True)['blocks']
 
-    return f"content/buffer/{key}.pdf"
+    for line in blocks:
+        text_length = line['bbox'][2] - line['bbox'][0]
+    
+    doc.close()
+    return text_length
