@@ -2,7 +2,7 @@ from fastapi import APIRouter
 from pydantic import BaseModel
 import math
 
-router = APIRouter(prefix="/client")
+router = APIRouter()
 
 def pt(t):
     if t >= 0:
@@ -341,7 +341,7 @@ def handle_ajax_2(vars: dict, request: CalculationRequest):
                 tr2 = tp(p2)
                 N2 = abs((i2 - i1) * 1.2 * G1 / 3600)
                 W2 = abs((d2 - d1) * 1.2 * G1 / 1000)
-                
+
         return f"{round(t2,2)}|{round(fi2,2)}|{round(d2,2)}|{round(i2,2)}|{round(p2/1000,2)}|{round(tr2,2)}|{round(N2,2)}|{round(W2,2)}|{error}"
         # return {
         #     "t2": round(t2, 2),
