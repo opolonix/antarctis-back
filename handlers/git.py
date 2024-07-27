@@ -21,11 +21,8 @@ async def github_webhook(request: Request):
     hmac_hash = hmac.new(SECRET.encode(), body, hashlib.sha1).hexdigest()
     if not hmac.compare_digest(signature_hash, hmac_hash):
         raise HTTPException(status_code=403, detail="Invalid signature")
-
-    last_dir = os.getcwd()
+    
     subprocess.run("git pull", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    os.system(f"cd html")
-    subprocess.run("git pull", shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
-    os.system(f"cd {last_dir}")
+    subprocess.run('git -C "html" pull', shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
 
     return True
