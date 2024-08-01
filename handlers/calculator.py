@@ -227,6 +227,13 @@ def handle_ajax_1(vars: dict, request):
         t1 = tid(i1, d1)
         fi1 = fidt(d1, t1)
 
+    if t1 is None: t1 = 0
+    if fi1 is None: fi1 = 0
+    if d1 is None: d1 = 0
+    if i1 is None: i1 = 0
+    if p1 is None: p1 = 0
+    if tr1 is None: tr1 = 0
+
     return f"{round(t1,2)}|{round(fi1,2)}|{round(d1,2)}|{round(i1,2)}|{round(p1/1000,2)}|{round(tr1,2)}"
 
     return {
@@ -392,6 +399,15 @@ def handle_ajax_2(vars: dict, request: CalculationRequest):
                 tr2 = tp(p2)
                 N2 = abs((i2 - i1) * 1.2 * G1 / 3600)
                 W2 = abs((d2 - d1) * 1.2 * G1 / 1000)
+
+        if t2 is None: t2 = 0
+        if fi2 is None: fi2 = 0
+        if d2 is None: d2 = 0
+        if i2 is None: i2 = 0
+        if p2 is None: p2 = 0
+        if tr2 is None: tr2 = 0
+        if N2 is None: N2 = 0
+        if W2 is None: W2 = 0
 
         return f"{round(t2,2)}|{round(fi2,2)}|{round(d2,2)}|{round(i2,2)}|{round(p2/1000,2)}|{round(tr2,2)}|{round(N2,2)}|{round(W2,2)}|{error}"
         # return {
