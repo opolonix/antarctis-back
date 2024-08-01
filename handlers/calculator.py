@@ -1,4 +1,4 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Form, Depends
 from pydantic import BaseModel
 import math
 
@@ -102,6 +102,57 @@ class CalculationRequest(BaseModel):
     tr2: float | None = None
     N2: float | None = None
     W2: float | None = None
+
+    @classmethod
+    def as_form(
+        cls,
+        ide1: str = Form(None),
+        ide2: str = Form(None),
+        idi1: float = Form(None),
+        idi2: float = Form(None),
+        ajax: int = Form(...),
+        t1: float = Form(None),
+        fi1: float = Form(None),
+        d1: float = Form(None),
+        i1: float = Form(None),
+        p1: float = Form(None),
+        tr1: float = Form(None),
+        G1: float = Form(None),
+        type: int = Form(None),
+        proc: str = Form(None),
+        t2: float = Form(None),
+        fi2: float = Form(None),
+        d2: float = Form(None),
+        i2: float = Form(None),
+        p2: float = Form(None),
+        tr2: float = Form(None),
+        N2: float = Form(None),
+        W2: float = Form(None),
+    ) -> 'CalculationRequest':
+        return cls(
+            ide1=ide1,
+            ide2=ide2,
+            idi1=idi1,
+            idi2=idi2,
+            ajax=ajax,
+            t1=t1,
+            fi1=fi1,
+            d1=d1,
+            i1=i1,
+            p1=p1,
+            tr1=tr1,
+            G1=G1,
+            type=type,
+            proc=proc,
+            t2=t2,
+            fi2=fi2,
+            d2=d2,
+            i2=i2,
+            p2=p2,
+            tr2=tr2,
+            N2=N2,
+            W2=W2,
+        )
 
     
 def handle_ajax_1(vars: dict, request):
@@ -356,7 +407,7 @@ def handle_ajax_2(vars: dict, request: CalculationRequest):
         # }
     
 @router.post("/calculate")
-async def calculate(request: CalculationRequest):
+async def calculate(request: CalculationRequest = Depends(CalculationRequest.as_form)):
     ajax = request.ajax
     ide1 = request.ide1
     ide2 = request.ide2
