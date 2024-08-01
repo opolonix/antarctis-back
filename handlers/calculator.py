@@ -254,7 +254,7 @@ def handle_ajax_2(vars: dict, request: CalculationRequest):
     if proc == 'humi':
         if type == 1:
             i2 = i1
-            t2, fi2, d2, p2, tr2, N2, W2 = None, None, None, None, None, None, None
+            t2, fi2, d2, p2, tr2, N2, W2 = 0, 0, 0, 0, 0, 0, 0
 
             if request.t2 is not None:
                 t2 = request.t2
