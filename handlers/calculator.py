@@ -80,10 +80,10 @@ def fidt(d, t):
     return d * 101325 / (622 + d) / pt(t) * 100
 
 class CalculationRequest(BaseModel):
-    ide1: str
-    ide2: str
-    idi1: float
-    idi2: float
+    ide1: str | None = None
+    ide2: str | None = None
+    idi1: float | None = None
+    idi2: float | None = None
     ajax: int
     t1: float | None = None
     fi1: float | None = None
