@@ -19,7 +19,7 @@ import requests
 from config import SMS
 
 router = APIRouter(prefix="/sms")
-sess = engine()
+db: Session = engine.session
 
 class NewClient(BaseModel):
     first_name: str
@@ -77,22 +77,20 @@ async def send_sms_code(phone: str, request: Request, response: Response, client
 
     if len(phone) < 6 or len(phone) > 20:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Неверно введен номер телефона")
-    
-    with sess() as db:
 
-        if not (client := db.query(Client).filter(Client.phone == phone).first()):
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+    if not (client := db.query(Client).filter(Client.phone == phone).first()):
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
 
-        code = ''.join(random.choices(string.digits, k=4))
+    code = ''.join(random.choices(string.digits, k=4))
 
-        answer = sms.send_sms(phone, message=f"Ваш код авторизации для сервиса antarctis.ru {code}")
+    answer = sms.send_sms(phone, message=f"Ваш код авторизации для сервиса antarctis.ru {code}")
 
-        auth = Auth(client_id=client.id, sms_code=code)
-        db.add(auth)
-        db.commit()
-        response.set_cookie("auth-token", auth.token)
+    auth = Auth(client_id=client.id, sms_code=code)
+    db.add(auth)
+    db.commit()
+    response.set_cookie("auth-token", auth.token)
 
-        return status.HTTP_200_OK
+    return status.HTTP_200_OK
 
 @router.post("/newClient")
 async def send_sms_code(data: NewClient, request: Request, response: Response, client: Optional[Auth] = Depends(get_client)) -> int:
@@ -120,27 +118,25 @@ async def send_sms_code(data: NewClient, request: Request, response: Response, c
     if not (data.first_name and data.facility_name and data.email and data.last_name):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Заполните обязательные поля")
 
-    with sess() as db:
+    if not (client := db.query(Client).filter(Client.phone == data.phone).first()): # проверка наличия клиента в базе
 
-        if not (client := db.query(Client).filter(Client.phone == data.phone).first()): # проверка наличия клиента в базе
-
-            by_email = db.query(Client).filter(Client.email == data.email).first()
-            if by_email:
-                raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Этот имейл уже привязан к аккаунту")
-            client = Client(**data.dict())
-            db.add(client)
-            db.commit()
-
-        code = ''.join(random.choices(string.digits, k=4))
-
-        answer = sms.send_sms(data.phone, message=f"Ваш код авторизации для сервиса antarctis.ru {code}")
-
-        auth = Auth(client_id=client.id, sms_code=code)
-        db.add(auth)
+        by_email = db.query(Client).filter(Client.email == data.email).first()
+        if by_email:
+            raise HTTPException(status.HTTP_400_BAD_REQUEST, detail="Этот имейл уже привязан к аккаунту")
+        client = Client(**data.dict())
+        db.add(client)
         db.commit()
-        response.set_cookie("auth-token", auth.token)
 
-        return status.HTTP_200_OK
+    code = ''.join(random.choices(string.digits, k=4))
+
+    answer = sms.send_sms(data.phone, message=f"Ваш код авторизации для сервиса antarctis.ru {code}")
+
+    auth = Auth(client_id=client.id, sms_code=code)
+    db.add(auth)
+    db.commit()
+    response.set_cookie("auth-token", auth.token)
+
+    return status.HTTP_200_OK
 
 @router.get("/verifyCode")
 async def verify_sms_code(code: str, auth: Optional[Auth] = Depends(get_client)) -> int:
@@ -155,9 +151,7 @@ async def verify_sms_code(code: str, auth: Optional[Auth] = Depends(get_client))
     if auth.sms_code != code:
         raise HTTPException(status.HTTP_400_BAD_REQUEST)
 
-    with sess() as db:
-
-        auth.verefied = True
-        db.commit()
+    auth.verefied = True
+    db.commit()
 
     return status.HTTP_200_OK

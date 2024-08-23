@@ -10,9 +10,25 @@ def include_handlers(folder: str, app: fastapi.FastAPI, router: str = "router"):
             if hasattr(module, router):
                 app.include_router(getattr(module, router))
 
-def engine():
-    """возвращает обьект для создания сессий"""
-    from config import CONNECT_RAW
-    e = sqlalchemy.create_engine(CONNECT_RAW)
-    sess = sessionmaker(bind=e)
-    return sess
+class Engine:
+    _instance = None
+    session: sqlalchemy.orm.Session
+
+    def __new__(cls):
+        if cls._instance is None:
+            cls._instance = super(Engine, cls).__new__(cls)
+
+            from config import CONNECT_RAW
+
+            cls._instance.engine = sqlalchemy.create_engine(CONNECT_RAW)
+            cls._instance.sessionmaker = sessionmaker(bind=cls._instance.engine)
+            cls._instance.session = cls._instance.sessionmaker()
+
+        return cls._instance
+    
+    def __init__(self) -> None:
+        self.engine: sqlalchemy.engine.Engine
+        self.sessionmaker: sqlalchemy.orm.sessionmaker
+        self.session: sqlalchemy.orm.Session
+    
+engine = Engine()

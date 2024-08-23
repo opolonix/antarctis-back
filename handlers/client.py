@@ -3,14 +3,14 @@ from fastapi.exceptions import HTTPException
 
 from tools.orm import Auth
 from tools.alchemy import engine
-
-from typing import List, Optional
-
 from tools.verefy import get_client
 from tools.schemas import ClientSchema, parse_client_schema, EditableSchema, Empty
 
+from typing import List, Optional
+from sqlalchemy.orm import Session
+
 router = APIRouter(prefix="/client")
-sess = engine()
+db: Session = engine.session
 
 
 @router.get("")
@@ -39,16 +39,16 @@ async def edit_params(new_params: EditableSchema, auth: Optional[Auth] = Depends
 
     При успешной отработке вернет новую схему клиента
     """
-    with sess() as db:
-        if not auth:
-            raise HTTPException(status.HTTP_401_UNAUTHORIZED)
-        
-        client = auth.client
-        for k, v in new_params.dict().items():
-            if v is Empty: continue
-            if v == '': raise HTTPException(status.HTTP_400_BAD_REQUEST)
-            setattr(client, k, v)
 
-        db.commit()
+    if not auth:
+        raise HTTPException(status.HTTP_401_UNAUTHORIZED)
+    
+    client = auth.client
+    for k, v in new_params.dict().items():
+        if v is Empty: continue
+        if v == '': raise HTTPException(status.HTTP_400_BAD_REQUEST)
+        setattr(client, k, v)
 
-        return parse_client_schema(client=client)
+    db.commit()
+
+    return parse_client_schema(client=client)

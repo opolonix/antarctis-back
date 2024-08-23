@@ -6,7 +6,7 @@ from tools.orm import Auth
 from tools.alchemy import engine
 from datetime import datetime
 
-db = engine()()
+db: Session = engine.session
 
 async def get_client(request: Request, response: Response) -> Optional[Auth]:
 

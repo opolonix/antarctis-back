@@ -1,5 +1,5 @@
 from fastapi import APIRouter, Request, HTTPException
-import subprocess, hashlib, hmac, os
+import subprocess, hashlib, hmac
 from config import SECRET
 
 router = APIRouter()
