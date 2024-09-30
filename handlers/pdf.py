@@ -84,10 +84,11 @@ async def download_pdf(key: str) -> StreamingResponse:
         filename = urllib.parse.quote(f'{file.name} {file.date.strftime("%d.%m.%Y")}.pdf')
 
         headers = {
-            'Content-Disposition': f'inline; filename*=UTF-8\'\'{filename}',
+            'Content-Disposition': f'inline; filename="raport {file.date.strftime("%d.%m.%Y")}.pdf"; filename*=UTF-8\'\'{filename}',
             'Cache-Control': 'public, max-age=3600',
             'ETag': hashlib.md5(output.read()).hexdigest()
         }
+        print(headers)
 
         output.seek(0)
         
